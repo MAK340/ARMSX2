@@ -12,6 +12,7 @@
 
 #include "fmt/format.h"
 
+#include <cstring>
 #include <mutex>
 
 static DWORD ConvertToWinApi(const PageProtectionMode& mode)
@@ -41,6 +42,11 @@ void HostSys::MemProtect(void* baseaddr, size_t size, const PageProtectionMode& 
 	DWORD OldProtect; // enjoy my uselessness, yo!
 	if (!VirtualProtect(baseaddr, size, ConvertToWinApi(mode), &OldProtect))
 		pxFail("VirtualProtect() failed");
+}
+
+void HostSys::ZeroSharedMemory(void* ptr, size_t size)
+{
+	std::memset(ptr, 0, size);
 }
 
 std::string HostSys::GetFileMappingName(const char* prefix)

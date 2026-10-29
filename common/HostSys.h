@@ -97,6 +97,10 @@ namespace HostSys
 	extern void* CreateSharedMemory(const char* name, size_t size);
 	extern void DestroySharedMemory(void* ptr);
 
+	/// Zeroes a range of shared memory. Where the OS can, whole pages are handed back instead of
+	/// written, so a big array that is mostly never touched doesn't become resident.
+	extern void ZeroSharedMemory(void* ptr, size_t size);
+
 	/// JIT write protect for Apple Silicon. Needs to be called prior to writing to any RWX pages.
 #if !defined(__APPLE__) || !defined(ARCH_ARM64)
 	// clang-format -off

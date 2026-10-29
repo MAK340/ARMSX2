@@ -1369,7 +1369,8 @@ void memReset()
 	s_dve_regs[0x7e] = 0x1C; // Status register. 0x1C seems to be the value it's expecting for everything being OK.
 
 	// BIOS is included in eeMem, so it needs to be copied after zeroing.
-	std::memset(eeMem, 0, sizeof(*eeMem));
+	// Main is sized for 128MB devkit RAM; a retail game only ever touches 32MB of it.
+	HostSys::ZeroSharedMemory(eeMem, sizeof(*eeMem));
 	CopyBIOSToMemory();
 }
 

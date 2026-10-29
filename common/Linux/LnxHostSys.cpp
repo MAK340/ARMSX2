@@ -67,6 +67,26 @@ void HostSys::MemProtect(void* baseaddr, size_t size, const PageProtectionMode& 
 		pxFail("mprotect() failed");
 }
 
+void HostSys::ZeroSharedMemory(void* ptr, size_t size)
+{
+#ifdef __linux__
+	// Punching the pages out of the backing file zeroes them for every view of it.
+	const uptr begin = reinterpret_cast<uptr>(ptr);
+	const uptr end = begin + size;
+	const uptr page_begin = Common::AlignUpPow2(begin, __pagesize);
+	const uptr page_end = Common::AlignDownPow2(end, __pagesize);
+	if (page_end > page_begin &&
+		madvise(reinterpret_cast<void*>(page_begin), page_end - page_begin, MADV_REMOVE) == 0)
+	{
+		std::memset(ptr, 0, page_begin - begin);
+		std::memset(reinterpret_cast<void*>(page_end), 0, end - page_end);
+		return;
+	}
+#endif
+
+	std::memset(ptr, 0, size);
+}
+
 std::string HostSys::GetFileMappingName(const char* prefix)
 {
 	const unsigned pid = static_cast<unsigned>(getpid());

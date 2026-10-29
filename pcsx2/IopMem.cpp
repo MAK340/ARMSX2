@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0+
 
 #include "common/AlignedMalloc.h"
+#include "common/HostSys.h"
 #include "R3000A.h"
 #include "Common.h"
 #include "ps2/pgif.h" // for PSX kernel TTY in iopMemWrite32
@@ -101,7 +102,7 @@ void iopMemReset()
 	// but leaving it in for reference (air)
 	//for (i=0; i<0x0008; i++) psxMemWLUT[i + 0xbfc0] = (uptr)&psR[i << 16];
 
-	std::memset(iopMem, 0, sizeof(*iopMem));
+	HostSys::ZeroSharedMemory(iopMem, sizeof(*iopMem));
 	ACRAM::Clear(); // an arcade board's RAM resets with the IOP's (no-op on a console)
 }
 
