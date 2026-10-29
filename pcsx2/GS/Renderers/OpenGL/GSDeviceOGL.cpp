@@ -18,6 +18,7 @@
 
 #include "common/Console.h"
 #include "common/Error.h"
+#include "common/HostSys.h"
 #include "common/ScopedGuard.h"
 #include "common/StringUtil.h"
 
@@ -56,6 +57,19 @@ static constexpr u32 VERTEX_UNIFORM_BUFFER_SIZE = 8 * 1024 * 1024;
 static constexpr u32 FRAGMENT_UNIFORM_BUFFER_SIZE = 8 * 1024 * 1024;
 static constexpr u32 VERTEX_PUSH_CONSTANT_BUFFER_SIZE = 1024 * 1024;
 static constexpr u32 TEXTURE_UPLOAD_BUFFER_SIZE = 128 * 1024 * 1024;
+
+// Below this much RAM the GPU is sharing it with everything else (a Mali on a 1GB handheld), and
+// the desktop-sized buffers alone take a fifth of it. Uploads that don't fit the smaller PBO take
+// the direct path, and uniforms only ever need a few KB per draw.
+static constexpr u64 LOW_MEMORY_HOST_RAM = 2ull * 1024 * 1024 * 1024;
+static constexpr u32 LOW_MEMORY_UNIFORM_BUFFER_SIZE = 2 * 1024 * 1024;
+static constexpr u32 LOW_MEMORY_TEXTURE_UPLOAD_BUFFER_SIZE = 32 * 1024 * 1024;
+
+static bool IsLowMemoryHost()
+{
+	static const bool low_memory = (GetPhysicalMemory() < LOW_MEMORY_HOST_RAM);
+	return low_memory;
+}
 
 namespace ReplaceGL
 {
@@ -458,8 +472,10 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 		m_vertex_stream_buffer = GLStreamBuffer::Create(GL_ARRAY_BUFFER, VERTEX_BUFFER_SIZE);
 		m_index_stream_buffer = GLStreamBuffer::Create(GL_ELEMENT_ARRAY_BUFFER, INDEX_BUFFER_SIZE);
 		m_expand_index_stream_buffer = GLStreamBuffer::Create(GL_ARRAY_BUFFER, INDEX_BUFFER_SIZE);
-		m_vertex_uniform_stream_buffer = GLStreamBuffer::Create(GL_UNIFORM_BUFFER, VERTEX_UNIFORM_BUFFER_SIZE);
-		m_fragment_uniform_stream_buffer = GLStreamBuffer::Create(GL_UNIFORM_BUFFER, FRAGMENT_UNIFORM_BUFFER_SIZE);
+		m_vertex_uniform_stream_buffer = GLStreamBuffer::Create(GL_UNIFORM_BUFFER,
+			IsLowMemoryHost() ? LOW_MEMORY_UNIFORM_BUFFER_SIZE : VERTEX_UNIFORM_BUFFER_SIZE);
+		m_fragment_uniform_stream_buffer = GLStreamBuffer::Create(GL_UNIFORM_BUFFER,
+			IsLowMemoryHost() ? LOW_MEMORY_UNIFORM_BUFFER_SIZE : FRAGMENT_UNIFORM_BUFFER_SIZE);
 		m_vertex_push_constants_stream_buffer = GLStreamBuffer::Create(GL_UNIFORM_BUFFER, VERTEX_PUSH_CONSTANT_BUFFER_SIZE);
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &m_uniform_buffer_alignment);
 		if (!m_vertex_stream_buffer || !m_index_stream_buffer || !m_expand_index_stream_buffer ||
@@ -790,7 +806,10 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 	// ****************************************************************
 	if (!m_bugs.buggy_pbo)
 	{
-		m_texture_upload_buffer = GLStreamBuffer::Create(GL_PIXEL_UNPACK_BUFFER, TEXTURE_UPLOAD_BUFFER_SIZE);
+		if (IsLowMemoryHost())
+			Console.WriteLn("GL: Low-memory host, using smaller uniform and texture upload buffers.");
+		m_texture_upload_buffer = GLStreamBuffer::Create(GL_PIXEL_UNPACK_BUFFER,
+			IsLowMemoryHost() ? LOW_MEMORY_TEXTURE_UPLOAD_BUFFER_SIZE : TEXTURE_UPLOAD_BUFFER_SIZE);
 		if (m_texture_upload_buffer)
 		{
 			// Don't keep it bound, we'll re-bind when we need it.

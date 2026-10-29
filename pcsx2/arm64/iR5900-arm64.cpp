@@ -3955,8 +3955,9 @@ static void recResetRaw()
 
 	memset(manual_page, 0, sizeof(manual_page));
 	memset(manual_counter, 0, sizeof(manual_counter));
+	// 32MB, most of which no block ever snapshots; don't make all of it resident.
 	if (recRAMCopy.data())
-		memset(recRAMCopy.data(), 0, recRAMCopy.size());
+		HostSys::ZeroPrivateMemory(recRAMCopy.data(), recRAMCopy.size());
 
 	g_branch = 0;
 

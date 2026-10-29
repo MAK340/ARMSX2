@@ -49,6 +49,11 @@ void HostSys::ZeroSharedMemory(void* ptr, size_t size)
 	std::memset(ptr, 0, size);
 }
 
+void HostSys::ZeroPrivateMemory(void* ptr, size_t size)
+{
+	std::memset(ptr, 0, size);
+}
+
 std::string HostSys::GetFileMappingName(const char* prefix)
 {
 	const unsigned pid = GetCurrentProcessId();

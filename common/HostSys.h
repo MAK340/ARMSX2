@@ -101,6 +101,10 @@ namespace HostSys
 	/// written, so a big array that is mostly never touched doesn't become resident.
 	extern void ZeroSharedMemory(void* ptr, size_t size);
 
+	/// The same for private heap memory (malloc'd or anonymous mappings), which must not be shared
+	/// with another mapping: the dropped pages come back as fresh zero pages.
+	extern void ZeroPrivateMemory(void* ptr, size_t size);
+
 	/// JIT write protect for Apple Silicon. Needs to be called prior to writing to any RWX pages.
 #if !defined(__APPLE__) || !defined(ARCH_ARM64)
 	// clang-format -off
