@@ -583,6 +583,11 @@ void GLContextEGL::DestroyContext()
 		return;
 	}
 
+	// Initialize() never got a display, so nothing was created and the EGL
+	// entry points may not even be loaded (a backend that failed early).
+	if (m_display == EGL_NO_DISPLAY)
+		return;
+
 	if (eglGetCurrentContext() == m_context)
 		eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 
@@ -600,6 +605,9 @@ void GLContextEGL::DestroySurface()
 		m_surface = EGL_NO_SURFACE;
 		return;
 	}
+
+	if (m_display == EGL_NO_DISPLAY)
+		return;
 
 	if (eglGetCurrentSurface(EGL_DRAW) == m_surface)
 		eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
