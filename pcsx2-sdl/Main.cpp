@@ -42,6 +42,10 @@
 
 #include <SDL3/SDL.h>
 
+#if defined(KMS_API)
+#include <dlfcn.h>
+#endif
+
 #include "fmt/format.h"
 
 #include "common/Assertions.h"
@@ -110,6 +114,22 @@ static u32 s_headless_height = 0;
 
 // -bigpicture: with no ISO, start in Big Picture even if UI/StartBigPictureMode was turned off.
 static bool s_force_bigpicture = false;
+
+#if defined(KMS_API)
+// True when there is no Vulkan loader at all - the Mali-G31 blob on Allwinner
+// H700 handhelds (Knulli, muOS, stock) ships GLES only. Decides the first-run
+// renderer, and which display path Auto/Software present through.
+static bool VulkanLoaderPresent()
+{
+	static const bool present = []() {
+		void* lib = dlopen("libvulkan.so.1", RTLD_LAZY | RTLD_LOCAL);
+		if (lib)
+			dlclose(lib);
+		return lib != nullptr;
+	}();
+	return present;
+}
+#endif
 
 // Wayland fallback window. Created lazily by BuildWindowInfo() the first time a
 // render window is requested, but only when running under a Wayland compositor
@@ -213,8 +233,15 @@ bool Pcsx2SDL::InitializeConfig()
 		// Don't disable user-set values they may have customised — only fill
 		// in missing defaults for first-run.
 		if (!s_base_settings->ContainsValue("EmuCore/GS", "Renderer"))
-			s_base_settings->SetIntValue("EmuCore/GS", "Renderer",
-				static_cast<int>(GSRendererType::VK));
+		{
+			GSRendererType renderer = GSRendererType::VK;
+#if defined(KMS_API)
+			// No Vulkan on the device: OpenGL ES through KMS/GBM or Mali fbdev.
+			if (!VulkanLoaderPresent())
+				renderer = GSRendererType::OGL;
+#endif
+			s_base_settings->SetIntValue("EmuCore/GS", "Renderer", static_cast<int>(renderer));
+		}
 		if (!s_base_settings->ContainsValue("SPU2/Output", "OutputModule"))
 			s_base_settings->SetStringValue("SPU2/Output", "OutputModule", "sdl");
 		if (!s_base_settings->ContainsValue("EmuCore/GS", "FullscreenMode"))
@@ -245,6 +272,9 @@ bool Pcsx2SDL::ParseCommandLineArgs(int argc, char* argv[], VMBootParameters& pa
 			std::fprintf(stderr, "  --fullscreen-mode WxH    Request a specific display mode\n");
 			std::fprintf(stderr, "                           (default: monitor's preferred mode)\n");
 			std::fprintf(stderr, "  --headless WxH           No display: render to an offscreen WxH image (for PINE UIScreenshot)\n");
+#if defined(KMS_API)
+			std::fprintf(stderr, "  --video gl|vulkan        Display through OpenGL ES (KMS/fbdev) or Vulkan (VK_KHR_display)\n");
+#endif
 			std::fprintf(stderr, "  -bigpicture              Start in Big Picture when no disc is given\n");
 			std::fprintf(stderr, "  --bios-only              Boot the BIOS without loading a disc\n");
 			std::fprintf(stderr, "  --state-from-file PATH   Resume from a save state file\n");
@@ -295,6 +325,26 @@ bool Pcsx2SDL::ParseCommandLineArgs(int argc, char* argv[], VMBootParameters& pa
 			s_force_bigpicture = true;
 			continue;
 		}
+#if defined(KMS_API)
+		if (ARG_PARAM("--video"))
+		{
+			const char* video = argv[++i];
+			GSRendererType renderer;
+			if (!std::strcmp(video, "gl"))
+				renderer = GSRendererType::OGL;
+			else if (!std::strcmp(video, "vulkan"))
+				renderer = GSRendererType::VK;
+			else
+			{
+				std::fprintf(stderr, "Invalid --video '%s', expected gl or vulkan.\n", video);
+				return false;
+			}
+			// In memory only; it reaches the INI only if something saves the settings later.
+			auto lock = Host::GetSettingsLock();
+			s_base_settings->SetIntValue("EmuCore/GS", "Renderer", static_cast<int>(renderer));
+			continue;
+		}
+#endif
 		if (ARG("--bios-only"))
 		{
 			params.source_type = CDVD_SourceType::NoDisc;
@@ -468,6 +518,22 @@ std::optional<WindowInfo> Pcsx2SDL::BuildWindowInfo()
 #endif
 
 	WindowInfo wi;
+#if defined(KMS_API)
+	// OpenGL owns no VK_KHR_display surface, so it takes the display through
+	// KMS/GBM or Mali fbdev instead (GLContextEGLKMS). Auto and Software
+	// present through OpenGL whenever the device has no Vulkan.
+	const GSRendererType renderer = static_cast<GSRendererType>(
+		Host::GetBaseIntSettingValue("EmuCore/GS", "Renderer", static_cast<int>(GSRendererType::Auto)));
+	if (renderer == GSRendererType::OGL ||
+		((renderer == GSRendererType::Auto || renderer == GSRendererType::SW) && !VulkanLoaderPresent()))
+	{
+		wi.type = WindowInfo::Type::DRM;
+		wi.surface_width = s_requested_width;
+		wi.surface_height = s_requested_height;
+		wi.surface_scale = 1.0f;
+		return wi;
+	}
+#endif
 	wi.type = WindowInfo::Type::VulkanDirect;
 	wi.surface_width = s_requested_width;
 	wi.surface_height = s_requested_height;
@@ -1034,6 +1100,9 @@ int main(int argc, char* argv[])
 			std::fprintf(stderr, "  --fullscreen-mode WxH    Request a specific display mode\n");
 			std::fprintf(stderr, "                           (default: monitor's preferred mode)\n");
 			std::fprintf(stderr, "  --headless WxH           No display: render to an offscreen WxH image (for PINE UIScreenshot)\n");
+#if defined(KMS_API)
+			std::fprintf(stderr, "  --video gl|vulkan        Display through OpenGL ES (KMS/fbdev) or Vulkan (VK_KHR_display)\n");
+#endif
 			std::fprintf(stderr, "  -bigpicture              Start in Big Picture when no disc is given\n");
 			std::fprintf(stderr, "  --bios-only              Boot the BIOS without loading a disc\n");
 			std::fprintf(stderr, "  --state-from-file PATH   Resume from a save state file\n");

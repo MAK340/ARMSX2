@@ -823,6 +823,7 @@ bool VKSwapChain::CreateSwapChain()
 			case WindowInfo::Type::Wayland:     wsi_name = "Wayland"; break;
 			case WindowInfo::Type::MacOS:       wsi_name = "MacOS"; break;
 			case WindowInfo::Type::VulkanDirect: wsi_name = "VulkanDirect"; break;
+			case WindowInfo::Type::DRM:          wsi_name = "DRM"; break;
 			case WindowInfo::Type::Android:      wsi_name = "Android"; break;
 		}
 		Console.WriteLnFmt(

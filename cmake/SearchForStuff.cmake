@@ -147,6 +147,12 @@ else()
 			find_package(Wayland REQUIRED Egl)
 		endif()
 
+		if(KMS_API)
+			find_package(PkgConfig REQUIRED)
+			pkg_check_modules(LIBDRM REQUIRED libdrm)
+			pkg_check_modules(GBM REQUIRED gbm)
+		endif()
+
 		if(USE_BACKTRACE)
 			find_package(Libbacktrace REQUIRED)
 		endif()

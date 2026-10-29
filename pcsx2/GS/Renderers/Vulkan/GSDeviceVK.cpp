@@ -1772,6 +1772,7 @@ std::vector<std::string> GSDeviceVK::GetExtendedStats() const
 			case WindowInfo::Type::Wayland:     wsi_name = "Wayland"; break;
 			case WindowInfo::Type::MacOS:       wsi_name = "MacOS"; break;
 			case WindowInfo::Type::VulkanDirect: wsi_name = "VulkanDirect"; break;
+			case WindowInfo::Type::DRM:          wsi_name = "DRM"; break;
 		}
 		const char* present_name = "?";
 		switch (m_swap_chain->GetPresentMode())

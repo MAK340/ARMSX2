@@ -810,7 +810,7 @@ if(USE_OPENGL)
 		# window of its own - but it still needs the EGL context class, because
 		# the context it renders on is an EGL one shared with the frontend's.
 		# (Android adds the same file further down, and CMake drops the repeat.)
-		if(X11_API OR WAYLAND_API OR ENABLE_LIBRETRO)
+		if(X11_API OR WAYLAND_API OR KMS_API OR ENABLE_LIBRETRO)
 			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGL.cpp)
 			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGL.h)
 		endif()
@@ -818,6 +818,15 @@ if(USE_OPENGL)
 		if(X11_API)
 			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGLX11.cpp)
 			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGLX11.h)
+		endif()
+
+		if(KMS_API)
+			list(APPEND pcsx2GSSources GS/Renderers/OpenGL/GLContextEGLKMS.cpp)
+			list(APPEND pcsx2GSHeaders GS/Renderers/OpenGL/GLContextEGLKMS.h GS/Renderers/OpenGL/GLContextEGLKMSFuncs.inl)
+
+			# libdrm and libgbm are opened at run time (an fbdev-only Mali device
+			# has neither), so only their headers are needed here.
+			target_include_directories(PCSX2_FLAGS INTERFACE ${LIBDRM_INCLUDE_DIRS} ${GBM_INCLUDE_DIRS})
 		endif()
 
 		if(WAYLAND_API)

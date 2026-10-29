@@ -15,6 +15,9 @@
 #ifdef WAYLAND_API
 #include "GS/Renderers/OpenGL/GLContextEGLWayland.h"
 #endif
+#ifdef KMS_API
+#include "GS/Renderers/OpenGL/GLContextEGLKMS.h"
+#endif
 #ifndef __ANDROID__
 #include "GS/Renderers/OpenGL/GLContextEGL.h"
 #endif
@@ -117,8 +120,12 @@ std::unique_ptr<GLContext> GLContext::Create(const WindowInfo& wi, Error* error)
 	if (!context && wi.type == WindowInfo::Type::Wayland)
 		context = GLContextEGLWayland::Create(wi, std::span<const Version>(versions_to_try, num_versions_to_try), error);
 #endif
+#ifdef KMS_API
+	if (!context && wi.type == WindowInfo::Type::DRM)
+		context = GLContextEGLKMS::Create(wi, std::span<const Version>(versions_to_try, num_versions_to_try), error);
+#endif
 // GLContextEGL.cpp is built only alongside a window system or libretro (pcsx2/CMakeLists.txt).
-#if !defined(__ANDROID__) && (defined(X11_API) || defined(WAYLAND_API) || defined(ENABLE_LIBRETRO))
+#if !defined(__ANDROID__) && (defined(X11_API) || defined(WAYLAND_API) || defined(KMS_API) || defined(ENABLE_LIBRETRO))
 	if (!context && wi.type == WindowInfo::Type::Surfaceless && AllowHeadless)
 		context = GLContextEGL::Create(wi, std::span<const Version>(versions_to_try, num_versions_to_try), error);
 #endif

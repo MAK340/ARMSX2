@@ -22,7 +22,13 @@ struct WindowInfo
 		// intermediate). Frontend supplies no native window handle; the
 		// renderer enumerates displays itself. surface_width/surface_height
 		// carry the requested mode (0 = pick the display's preferred mode).
-		VulkanDirect
+		VulkanDirect,
+
+		// EGL straight to the display (KMS/GBM, or Mali fbdev) - OpenGL ES on
+		// handhelds with no compositor and no Vulkan driver. Like VulkanDirect,
+		// the frontend supplies no handle; GLContextEGLKMS opens the display
+		// itself. surface_width/surface_height carry the requested mode.
+		DRM
 	};
 
 	/// The type of the surface. Surfaceless indicates it will not be displayed on screen at all.

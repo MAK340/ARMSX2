@@ -56,6 +56,7 @@ if(UNIX AND NOT APPLE)
 	option(ENABLE_SETCAP "Enable networking capability for DEV9" OFF)
 	option(X11_API "Enable X11 support" ON)
 	option(WAYLAND_API "Enable Wayland support" ON)
+	option(KMS_API "Enable OpenGL ES straight to the display through KMS/GBM or Mali fbdev (handhelds without Vulkan)" OFF)
 	option(USE_BACKTRACE "Enable libbacktrace support" ON)
 endif()
 
@@ -373,6 +374,13 @@ endif()
 
 if(WAYLAND_API)
 	list(APPEND PCSX2_DEFS WAYLAND_API)
+endif()
+
+if(KMS_API)
+	if(NOT USE_OPENGL)
+		message(FATAL_ERROR "KMS_API needs the OpenGL renderer (USE_OPENGL).")
+	endif()
+	list(APPEND PCSX2_DEFS KMS_API)
 endif()
 
 if(ENABLE_SDL_FRONTEND)

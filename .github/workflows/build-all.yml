@@ -96,6 +96,24 @@ jobs:
       fetchTags: true
     secrets: inherit
 
+  # Allwinner H700 handhelds (RG35XX H/Plus/SP, RG28XX, RG40XX) on Knulli, muOS
+  # and the stock firmware: Cortex-A53 cores without LSE atomics, so -march
+  # stays at ARMv8.0, and a Mali-G31 with only Arm's GLES driver, so the
+  # display goes through OpenGL ES over KMS/GBM or fbdev (KMS_API).
+  pc-linux-arm64-sdl-h700:
+    name: PC · Linux arm64 (SDL, Cortex-A53 / H700)
+    uses: ./.github/workflows/linux_build_sdl.yml
+    with:
+      jobName: "SDL Handheld Build (arm64, Cortex-A53 / H700)"
+      artifactPrefixName: "armsx2-linux-arm64-sdl-a53"
+      fetchTags: true
+      cacheVariant: "a53-kms"
+      cmakeflags: >-
+        -DKMS_API=ON
+        "-DCMAKE_C_FLAGS=-march=armv8-a+crc+crypto -mtune=cortex-a53 -moutline-atomics"
+        "-DCMAKE_CXX_FLAGS=-march=armv8-a+crc+crypto -mtune=cortex-a53 -moutline-atomics"
+    secrets: inherit
+
   # ---- PC arm64 Qt GUI (windows) -----------------------------------------
   pc-windows-arm64:
     name: PC · Windows arm64 (Qt)

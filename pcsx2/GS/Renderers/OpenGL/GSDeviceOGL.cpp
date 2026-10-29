@@ -360,6 +360,10 @@ bool GSDeviceOGL::Create(GSVSyncMode vsync_mode, bool allow_present_throttle)
 		return false;
 	}
 
+	// A DRM context picks its own mode; the frontend could only guess the size.
+	if (m_window_info.type == WindowInfo::Type::DRM)
+		m_window_info = m_gl_context->GetWindowInfo();
+
 	m_is_gles = m_gl_context->IsGLES();
 
 	if (!CheckFeatures())
