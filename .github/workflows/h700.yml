@@ -1,0 +1,32 @@
+# Builds only the Allwinner H700 handheld package (Cortex-A53, OpenGL ES over
+# KMS/fbdev), on pushes to the h700 branches and on demand. The same job also
+# runs inside build-all.yml; this one exists so the H700 build can be iterated
+# on a fork without paying for every other platform.
+name: H700 Handheld Build
+
+on:
+  push:
+    branches:
+      - 'h700-*'
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: h700-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdl-h700:
+    name: SDL (Cortex-A53 / H700)
+    uses: ./.github/workflows/linux_build_sdl.yml
+    with:
+      jobName: "SDL Handheld Build (arm64, Cortex-A53 / H700)"
+      artifactPrefixName: "armsx2-linux-arm64-sdl-a53"
+      fetchTags: true
+      cacheVariant: "a53-kms"
+      cmakeflags: >-
+        -DKMS_API=ON
+        "-DCMAKE_C_FLAGS=-march=armv8-a+crc+crypto -mtune=cortex-a53 -moutline-atomics"
+        "-DCMAKE_CXX_FLAGS=-march=armv8-a+crc+crypto -mtune=cortex-a53 -moutline-atomics"
+    secrets: inherit
