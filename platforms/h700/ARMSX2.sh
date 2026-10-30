@@ -34,9 +34,20 @@ GOV=/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 OLD_GOV="$(cat "$GOV" 2>/dev/null)"
 echo performance > "$GOV" 2>/dev/null
 
+# With 1GB, no swap and the frontend still resident, free memory ends up in
+# pieces too small for the kernel's own 16KB allocations, and the OOM killer
+# picks the emulator. Start from compacted memory and keep a bigger reserve.
+VM=/proc/sys/vm
+OLD_MIN_FREE="$(cat "$VM/min_free_kbytes" 2>/dev/null)"
+sync
+echo 3 > "$VM/drop_caches" 2>/dev/null
+echo 1 > "$VM/compact_memory" 2>/dev/null
+echo 16384 > "$VM/min_free_kbytes" 2>/dev/null
+
 cd "$APP" || exit 1
 ./armsx2-sdl "$@" > "$APP/armsx2.log" 2>&1
 RET=$?
 
+[ -n "$OLD_MIN_FREE" ] && echo "$OLD_MIN_FREE" > "$VM/min_free_kbytes" 2>/dev/null
 [ -n "$OLD_GOV" ] && echo "$OLD_GOV" > "$GOV" 2>/dev/null
 exit $RET

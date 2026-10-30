@@ -7,6 +7,9 @@ RG35XX H / Plus / SP, RG28XX, RG40XX H/V and other H700 devices running
 > 1.5 GHz with a two-core Mali-G31 and 1 GB of RAM - well below anything PS2
 > emulation is normally shown on. Most 3D games run in single digits or low
 > teens of fps. Treat this as a tech demo.
+>
+> On an RG35XX-H with Knulli, Ratchet & Clank (NTSC-U) runs cutscenes at
+> ~24 fps and gameplay at ~8 fps with the settings below, without glitches.
 
 ## What is different about this build
 
@@ -37,17 +40,38 @@ GBM is tried first, then fbdev.
    firmware's Ports folder (`roms/ports` on Knulli; check your muOS version's
    docs for where ports/applications live).
 3. Put your PS2 BIOS dump in `armsx2/bios/` (the launcher turns on portable mode,
-   so all data lives in that folder).
+   so all data lives in that folder), or point Settings -> BIOS at the
+   firmware's own BIOS folder (`/userdata/bios` on Knulli).
 4. Launch **ARMSX2** from Ports. With no game passed in it opens the game list.
    Add a game directory under Settings -> Game List.
+
+The launcher maps the built-in controls for SDL. In ARMSX2, bind Pad 1 to
+`SDL-0` and put the pause menu on the Menu button (`SDL-0/Guide`).
+
+## Memory
+
+1 GB with no swap is the real limit: a running game leaves ~100 MB free, and
+the out-of-memory killer picks the emulator when anything else needs some.
+
+- **Launch from a fresh boot**, without another emulator (RetroArch) having run
+  first. Leftover processes and fragmented memory are what get it killed.
+- The launcher flushes caches, compacts memory and raises the kernel's free
+  reserve (`vm.min_free_kbytes`) for the session, and puts it back on exit.
+- Under 2 GB of RAM, the OpenGL renderer uses smaller upload and uniform
+  buffers, which keeps ~100 MB of GPU (shared) memory free.
 
 ## Settings to start with
 
 These matter more on this device than anywhere else:
 
 - **Renderer: OpenGL** at **Native (1x)** resolution. Software is slower still.
-- **EE Cycle Rate -1 or -2** (underclock) and **EE Cycle Skip 1** help CPU-bound games.
-- **Blending Accuracy: Minimum**.
+  ARMSX2 warns that the graphics API isn't Automatic; that is expected, as
+  Automatic would pick Vulkan.
+- **Blending Accuracy: Basic**. Minimum is noticeably faster but breaks effects
+  (Ratchet & Clank glitches with it).
+- **Dithering: Off**. Costs a little banding.
+- Leave **EE Cycle Skip at 0**: in Ratchet & Clank it soft-locks the game. EE
+  Cycle Rate/Skip are worth trying per game, not globally.
 - Prefer CHD images, which need less I/O than ISO.
 
 ## Environment overrides
